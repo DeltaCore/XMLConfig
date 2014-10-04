@@ -1,12 +1,11 @@
 package net.ccmob.xml;
 
 import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.AttributedCharacterIterator.Attribute;
 import java.util.ArrayList;
 
 public class XMLConfig {
@@ -48,147 +47,10 @@ public class XMLConfig {
 	}
 
 	public void parse() {
-		StringBuilder configText = new StringBuilder();
-		for (int i = 0; i < this.getConfigLines().size(); i++) {
-			configText.append(this.getConfigLines().get(i) + " ");
-		}
 		try {
-			parseTextBlock(configText.toString().trim(), this.getConfigNode());
-		} catch (Exception e) {
+			this.setConfigNode(XMLParser.parseFileLines(this.getConfigLines()));
+		} catch (EOFException e) {
 			e.printStackTrace();
-		}
-	}
-
-	private void parseTextBlock(String block, XMLNode parent) throws Exception {
-		block = block.replaceAll("\t", "");
-		XMLNode node = new XMLNode();
-		String nodeName = "";
-		System.out.println("Current block : \n" + block);
-		boolean blockOpen = false;
-		boolean nodeBlockFinished = false;
-		boolean nodeNameFinished = false;
-		boolean atAttributes = false;
-		int attrStart = 0;
-		int attrEnd = 0;
-		char prevChar = '\0';
-		for (int i = 0; i < block.length(); i++) {
-			char c = block.charAt(i);
-			if (i > 0) {
-				prevChar = block.charAt(i - 1);
-			}
-			switch (c) {
-			case '<': {
-				if (block.charAt(i + 1) == '/') {
-					i = block.indexOf('>', i) + 2;
-					blockOpen = false;
-					break;
-				} else {
-					attrStart = 0;
-					attrEnd = 0;
-					atAttributes = false;
-					if (!blockOpen) {
-						blockOpen = true;
-					}
-				}
-				nodeBlockFinished = false;
-				nodeNameFinished = false;
-				nodeName = "";
-				break;
-			}
-			case ' ': {
-				if (blockOpen) {
-					if (atAttributes && attrStart == 0) {
-						attrStart = i + 1;
-					}
-					if (blockOpen && !nodeBlockFinished && !nodeNameFinished) {
-						nodeNameFinished = true;
-						node.setNodeName(nodeName);
-						atAttributes = true;
-						attrStart = i + 1;
-					}
-				}
-				break;
-			}
-			case '"': {
-				if (i != (block.length() - 1)) {
-					if (block.charAt(i + 1) == ' '
-							|| block.charAt(i + 1) == '>'
-							|| block.charAt(i + 1) == '/') {
-						attrEnd = i;
-						node.add(new XMLAttribute(block.substring(attrStart,
-								attrEnd).substring(
-								0,
-								block.substring(attrStart, attrEnd)
-										.indexOf('=')), block.substring(
-								attrStart, attrEnd).substring(
-								block.substring(attrStart, attrEnd)
-										.indexOf('=') + 2,
-								block.substring(attrStart, attrEnd).length())));
-						attrStart = 0;
-						attrEnd = 0;
-					}
-				} else {
-					throw new Exception("File is corrupted");
-				}
-				break;
-			}
-			case '/': {
-				attrEnd = 0;
-				attrStart = 0;
-				atAttributes = false;
-				break;
-			}
-			case '>': {
-				if (blockOpen && !nodeBlockFinished && !nodeNameFinished) {
-					nodeNameFinished = true;
-					node.setNodeName(nodeName);
-				}
-				blockOpen = false;
-				if (prevChar == '/') {
-					parent.add(node);
-					node = new XMLNode();
-					break;
-				} else {
-					int nc = 1;
-					int blocks = 0;
-					boolean inBlock = false;
-					for (int j = i; j < block.length(); j++) {
-						// char cChar = block.charAt(j);
-						if (!inBlock && block.charAt(j) == '<') {
-							inBlock = true;
-						} else if (inBlock && block.charAt(j) == '>'
-								&& block.charAt(j - 1) != '/') {
-							nc++;
-							inBlock = false;
-						} else if (inBlock && block.charAt(j) == '>'
-								&& block.charAt(j - 1) == '/') {
-							inBlock = false;
-						}
-					}
-					blocks = i;
-					for (int j = 0; j < nc; j++) {
-						blocks = block.indexOf("</", blocks + 1);
-						// System.out.println(block.substring(blocks -4,
-						// blocks + 4));
-					}
-					System.out.println(blocks);
-					System.out.println(block.substring(blocks, blocks + 2));
-					if (i < blocks) {
-						parseTextBlock(block.substring(i + 1, blocks), node);
-						parent.add(node);
-						node = new XMLNode();
-						i = blocks;
-					}
-				}
-				break;
-			}
-			default: {
-				if (blockOpen && !nodeBlockFinished && !nodeNameFinished) {
-					nodeName += c;
-				}
-				break;
-			}
-			}
 		}
 	}
 
@@ -225,7 +87,7 @@ public class XMLConfig {
 
 	private void writeNode(XMLNode node, int tabIndex, FileWriter writer)
 			throws IOException {
-		String line = formTabs(tabIndex) + "<" + node.getNodeName();
+		String line = formTabs(tabIndex) + "<" + node.getName();
 		if (node.getAttributes().size() > 0) {
 			for (int i = 0; i < node.getAttributes().size(); i++) {
 				line += " " + formAttribute(node.getAttributes().get(i));
@@ -240,7 +102,7 @@ public class XMLConfig {
 			for (XMLNode child : node.getChilds()) {
 				writeNode(child, tabIndex + 1, writer);
 			}
-			writer.write(formTabs(tabIndex) + "</" + node.getNodeName() + ">\n");
+			writer.write(formTabs(tabIndex) + "</" + node.getName() + ">\n");
 		}
 	}
 
@@ -272,124 +134,6 @@ public class XMLConfig {
 	 */
 	public void setConfigNode(XMLNode configNode) {
 		this.rootNode = configNode;
-	}
-
-	public static class XMLNode {
-
-		private ArrayList<XMLNode> childs;
-		private ArrayList<XMLAttribute> attributes;
-		private String nodeName = "";
-
-		public XMLNode() {
-			this("");
-		}
-
-		public XMLNode(String name, ArrayList<XMLAttribute> attributes) {
-			if (attributes != null) {
-				this.setAttributes(attributes);
-			} else {
-				this.setAttributes(new ArrayList<XMLConfig.XMLAttribute>());
-			}
-			this.setNodeName(name);
-			this.setChilds(new ArrayList<XMLConfig.XMLNode>());
-		}
-
-		public XMLNode(String name) {
-			this(name, null);
-		}
-
-		/**
-		 * @return the childs
-		 */
-		public ArrayList<XMLNode> getChilds() {
-			return childs;
-		}
-
-		/**
-		 * @param childs
-		 *            the childs to set
-		 */
-		public void setChilds(ArrayList<XMLNode> childs) {
-			this.childs = childs;
-		}
-
-		/**
-		 * @return the nodeName
-		 */
-		public String getNodeName() {
-			return nodeName;
-		}
-
-		/**
-		 * @param nodeName
-		 *            the nodeName to set
-		 */
-		public void setNodeName(String nodeName) {
-			this.nodeName = nodeName;
-		}
-
-		/**
-		 * @return the attributes
-		 */
-		public ArrayList<XMLAttribute> getAttributes() {
-			return attributes;
-		}
-
-		/**
-		 * @param attributes
-		 *            the attributes to set
-		 */
-		public void setAttributes(ArrayList<XMLAttribute> attributes) {
-			this.attributes = attributes;
-		}
-
-		/**
-		 * @param e
-		 * @return
-		 * @see java.util.ArrayList#add(java.lang.Object)
-		 */
-		public boolean add(XMLNode e) {
-			return childs.add(e);
-		}
-
-		/**
-		 * @param e
-		 * @return
-		 * @see java.util.ArrayList#add(java.lang.Object)
-		 */
-		public boolean add(XMLAttribute e) {
-			return attributes.add(e);
-		}
-
-		public XMLNode getNodeByName(String nodeName) {
-			for (XMLNode child : this.getChilds()) {
-				if (child.getNodeName().equals(nodeName))
-					return child;
-			}
-			return null;
-		}
-
-		public static void printNode(XMLNode node) {
-			pNode(node, 0);
-		}
-
-		private static void pNode(XMLNode node, int tabIndex) {
-			String tabs = "";
-			for (int i = 0; i < tabIndex; i++) {
-				tabs += "  ";
-			}
-			String tabs2 = tabs + "  ";
-			System.out.println(tabs + "[" + node.getNodeName() + "] {");
-			for (XMLAttribute attr : node.getAttributes()) {
-				System.out.println(tabs2 + attr.getAttributeName() + " - "
-						+ attr.getAttributeValue());
-			}
-			for (int i = 0; i < node.getChilds().size(); i++) {
-				pNode(node.childs.get(i), tabIndex + 1);
-			}
-			System.out.println(tabs + "}");
-		}
-
 	}
 
 	public static class XMLAttribute {
@@ -436,6 +180,202 @@ public class XMLConfig {
 			this.attributeValue = attributeValue;
 		}
 
+	}
+
+	public static class XMLNode {
+		private String name;
+		private ArrayList<XMLNode> childs;
+		private ArrayList<XMLAttribute> attributes;
+		private XMLNode parent;
+
+		public XMLNode() {
+			this.childs = new ArrayList<XMLNode>();
+			this.attributes = new ArrayList<XMLAttribute>();
+		}
+
+		public XMLNode(String name) {
+			this();
+			this.setName(name);
+		}
+
+		public void addAttribute(String key, String value) {
+			this.attributes.add(new XMLAttribute(key, value));
+		}
+
+		public void addChild(XMLNode child) {
+			this.childs.add(child);
+			child.setParent(this);
+		}
+
+		public XMLNode getChild(int index) {
+			return (XMLNode) this.childs.get(index);
+		}
+
+		public int getNumChilds() {
+			return this.childs.size();
+		}
+
+		public void setParent(XMLNode parent) {
+			this.parent = parent;
+		}
+
+		public XMLNode getParent() {
+			return this.parent;
+		}
+
+		public String getName() {
+			return this.name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getXMLString() {
+			return getXMLString(0);
+		}
+
+		private String getXMLString(int height) {
+			String s = "";
+			for (int j = 0; j < height; j++)
+				s = s + "\t";
+			s = s + "<" + this.name + getAttributeString()
+					+ (getNumChilds() == 0 ? " /" : "") + ">\n";
+			if (this.childs.size() != 0) {
+				for (int i = 0; i < this.childs.size(); i++) {
+					s = s + ((XMLNode) this.childs.get(i)).getXMLString(height + 1);
+				}
+				for (int j = 0; j < height; j++)
+					s = s + "\t";
+				s = s + "</" + this.name + ">\n";
+			}
+			return s;
+		}
+
+		private String getAttributeString() {
+			String s = "";
+			for (int i = 0; i < this.attributes.size(); i++) {
+				s = s + this.attributes.get(i).getAttributeName() + "=\""
+						+ this.attributes.get(i).getAttributeValue() + "\" ";
+			}
+			s = s.trim();
+			if (this.attributes.size() > 0)
+				s = " " + s;
+			return s;
+		}
+
+		/**
+		 * @return the childs
+		 */
+		public ArrayList<XMLNode> getChilds() {
+			return childs;
+		}
+
+		/**
+		 * @param childs
+		 *            the childs to set
+		 */
+		public void setChilds(ArrayList<XMLNode> childs) {
+			this.childs = childs;
+		}
+
+		/**
+		 * @return the attributes
+		 */
+		public ArrayList<XMLAttribute> getAttributes() {
+			return attributes;
+		}
+
+		/**
+		 * @param attributes
+		 *            the attributes to set
+		 */
+		public void setAttributes(ArrayList<XMLAttribute> attributes) {
+			this.attributes = attributes;
+		}
+
+		public static void printNode(XMLNode node) {
+			pNode(node, 0);
+		}
+
+		private static void pNode(XMLNode node, int tabIndex) {
+			String tabs = "";
+			for (int i = 0; i < tabIndex; i++) {
+				tabs += "  ";
+			}
+			String tabs2 = tabs + "  ";
+			System.out.println(tabs + "[" + node.getName() + "] {");
+			for (XMLAttribute attr : node.getAttributes()) {
+				System.out.println(tabs2 + attr.getAttributeName() + " - "
+						+ attr.getAttributeValue());
+			}
+			for (int i = 0; i < node.getChilds().size(); i++) {
+				pNode(node.childs.get(i), tabIndex + 1);
+			}
+			System.out.println(tabs + "}");
+		}
+		
+	}
+
+	public static class XMLParser
+	{
+	  public static XMLNode parseText(String text)
+	    throws EOFException
+	  {
+	    XMLNode currentNode = new XMLNode();
+	    char[] c = text.toCharArray();
+	    for (int i = 0; i < c.length; i++) {
+	      if (c[i] == '/') {
+	        if (currentNode.getParent().getName() == null) return currentNode;
+	        currentNode = currentNode.getParent();
+	      }
+	      if ((c[i] == '<') && (c[(i + 1)] != '/')) {
+	        String tagText = text.substring(i + 1);
+	        XMLNode newNode = new XMLNode();
+	        currentNode.addChild(newNode);
+	        currentNode = newNode;
+	        currentNode.setName(tagText.substring(0, tagText.indexOf(">")).split(" ")[0]);
+	        int tagEnd = min(tagText.indexOf(">"), tagText.indexOf("/"));
+
+	        String attribText = tagText.substring(0, tagEnd);
+	        for (String currentAttribute : attribText.split(" ")) {
+	          if (currentAttribute.split("=").length >= 2)
+	            currentNode.addAttribute(currentAttribute.split("=")[0], currentAttribute.split("=")[1].replace("\"", ""));
+	        }
+	        i = i + tagEnd - 1;
+	      }
+	    }
+
+	    throw new EOFException("Nodes aren't closed properly");
+	  }
+
+	  public static XMLNode parseFile(String filePath) throws EOFException
+	  {
+	    StringBuilder text = new StringBuilder();
+	    String line = "";
+	    try
+	    {
+	      BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)));
+
+	      while ((line = reader.readLine()) != null) text.append(line);
+	      reader.close();
+	    } catch (IOException e) {
+	      e.printStackTrace();
+	    }
+	    return parseText(text.toString());
+	  }
+	  
+	  public static XMLNode parseFileLines(ArrayList<String> lines) throws EOFException {
+		  StringBuilder text = new StringBuilder();
+		  for(int i = 0;i<lines.size();i++){
+			  text.append(lines.get(i));
+		  }
+		  return parseText(text.toString());
+	  }
+
+	  private static int min(int a, int b) {
+	    return a < b ? a : b;
+	  }
 	}
 
 }

@@ -1,13 +1,14 @@
 package net.ccmob.xml;
 
-import net.ccmob.xml.XMLConfig.XMLAttribute;
 import net.ccmob.xml.XMLConfig.XMLNode;
+
 
 public class Test {
 
 	public static void main(String[] args) {
 		//XMLConfig config = new XMLConfig("/Users/Marcel/Dropbox/xmlExample.xml");
 		XMLConfig config = new XMLConfig("/Users/Marcel/Desktop/test.xml");
+		System.out.println(config.getConfigNode().getXMLString());
 		XMLNode.printNode(config.getConfigNode());
 		//XMLNode node = new XMLNode("block");
 		//node.add(new XMLAttribute("id", "23"));
