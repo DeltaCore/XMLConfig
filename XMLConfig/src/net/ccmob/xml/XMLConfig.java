@@ -318,6 +318,12 @@ public class XMLConfig {
 			return (XMLNode) this.childs.get(index);
 		}
 
+		/**
+		 * Returns a child given by the name of the node
+		 * 
+		 * @param index
+		 * @return
+		 */
 		public XMLNode getChild(String nodeName){
 			for(XMLNode node : this.getChilds()){
 				if(node.getName().equals(nodeName)){
