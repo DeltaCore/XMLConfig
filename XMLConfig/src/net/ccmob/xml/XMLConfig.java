@@ -9,6 +9,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class XMLConfig {
+	
+	/**
+	 * This File is licensed under the MIT License (http://opensource.org/licenses/MIT)
+	 * 
+	 * @author Marcel Benning
+	 * @email marcel@ccmob.net
+	 * @website https://ccmob.net
+	 * 
+	 */
 
 	/**
 	 * Here is the config saved to and can be modified at runtime. After
@@ -26,7 +35,17 @@ public class XMLConfig {
 	 *            the file to parse from
 	 */
 	public XMLConfig(String filename) {
-		this(new File(filename));
+		File f = new File(filename);
+		this.setFileName(f.getAbsolutePath());
+		if (!f.exists()) {
+			try {
+				f.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}else{
+			parse();
+		}
 	}
 
 	/**
@@ -290,18 +309,43 @@ public class XMLConfig {
 			this();
 			this.setName(name);
 		}
-		
+
+		/**
+		 * Internal add function
+		 */
+		private void addAttributePrivate(XMLAttribute attr) {
+			for (XMLAttribute at : this.getAttributes()) {
+				if (at.getAttributeName().equals(attr.getAttributeName())) {
+					at.setAttributeValue(attr.getAttributeValue());
+					return;
+				}
+			}
+			this.getAttributes().add(attr);
+		}
+
 		/**
 		 * Adds a attribute to the node
+		 * 
 		 * @param key
 		 * @param value
 		 */
 		public void addAttribute(String key, String value) {
-			this.attributes.add(new XMLAttribute(key, value));
+			this.addAttributePrivate(new XMLAttribute(key, value));
+		}
+
+		/**
+		 * Adds a attribute to the node
+		 * 
+		 * @param key
+		 * @param value
+		 */
+		public void addAttribute(XMLAttribute attr) {
+			this.addAttributePrivate(attr);
 		}
 
 		/**
 		 * Adds a child to the node
+		 * 
 		 * @param child
 		 */
 		public void addChild(XMLNode child) {
@@ -311,6 +355,7 @@ public class XMLConfig {
 
 		/**
 		 * Returns a child
+		 * 
 		 * @param index
 		 * @return
 		 */
@@ -324,15 +369,29 @@ public class XMLConfig {
 		 * @param index
 		 * @return
 		 */
-		public XMLNode getChild(String nodeName){
-			for(XMLNode node : this.getChilds()){
-				if(node.getName().equals(nodeName)){
+		public XMLNode getChild(String nodeName) {
+			for (XMLNode node : this.getChilds()) {
+				if (node.getName().equals(nodeName)) {
 					return node;
 				}
 			}
 			return null;
 		}
-		
+
+		/**
+		 * Checks whether a child node exists or not
+		 * 
+		 * @param nodeName
+		 * @return
+		 */
+		public boolean nodeExists(String nodeName) {
+			for (XMLNode node : this.getChilds()) {
+				if (node.getName().equals(nodeName))
+					return true;
+			}
+			return false;
+		}
+
 		/**
 		 * @return The childs array size
 		 */
@@ -342,6 +401,7 @@ public class XMLConfig {
 
 		/**
 		 * Set's the parent for this node
+		 * 
 		 * @param parent
 		 */
 		public void setParent(XMLNode parent) {
@@ -350,6 +410,7 @@ public class XMLConfig {
 
 		/**
 		 * Return the parent of this node
+		 * 
 		 * @return
 		 */
 		public XMLNode getParent() {
@@ -358,6 +419,7 @@ public class XMLConfig {
 
 		/**
 		 * Return the name of this node
+		 * 
 		 * @return
 		 */
 		public String getName() {
@@ -366,6 +428,7 @@ public class XMLConfig {
 
 		/**
 		 * Set's the name of this node
+		 * 
 		 * @param name
 		 */
 		public void setName(String name) {
@@ -374,6 +437,7 @@ public class XMLConfig {
 
 		/**
 		 * Returns a formated XMLString
+		 * 
 		 * @return
 		 */
 		public String getXMLString() {
@@ -401,6 +465,7 @@ public class XMLConfig {
 
 		/**
 		 * Creates an String with the attributes of this node
+		 * 
 		 * @return
 		 */
 		private String getAttributeString() {
@@ -447,6 +512,7 @@ public class XMLConfig {
 
 		/**
 		 * Wrapper Method to print an XMLNode
+		 * 
 		 * @param node
 		 */
 		public static void printNode(XMLNode node) {
@@ -454,7 +520,8 @@ public class XMLConfig {
 		}
 
 		/**
-		 * Prints an XMLNode with tabIndex as right shift amount 
+		 * Prints an XMLNode with tabIndex as right shift amount
+		 * 
 		 * @param node
 		 * @param tabIndex
 		 */
@@ -478,13 +545,14 @@ public class XMLConfig {
 	}
 
 	public static class XMLParser {
-		
+
 		/**
 		 * @Author PikajuTheBoss
 		 */
-		
+
 		/**
 		 * Parses a XMLString @param text
+		 * 
 		 * @param text
 		 * @return
 		 * @throws EOFException
@@ -524,6 +592,7 @@ public class XMLConfig {
 
 		/**
 		 * Reads a file and passes it to parseText
+		 * 
 		 * @param filePath
 		 * @return
 		 * @throws EOFException
@@ -546,6 +615,7 @@ public class XMLConfig {
 
 		/**
 		 * Passes @param lines as single string to parseText
+		 * 
 		 * @param lines
 		 * @return
 		 * @throws EOFException
@@ -561,6 +631,7 @@ public class XMLConfig {
 
 		/**
 		 * A minimal function for two integers
+		 * 
 		 * @param a
 		 * @param b
 		 * @return
