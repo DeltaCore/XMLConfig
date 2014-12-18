@@ -167,7 +167,7 @@ public class XMLConfig {
 			}
 		}
 		if (node.getChilds().size() == 0) {
-			line += "/>";
+			line += " />";
 			writer.write(line + "\n");
 		} else {
 			line += ">";
@@ -218,7 +218,7 @@ public class XMLConfig {
 		/**
 		 * Sores the value of the Attribute
 		 */
-		private Object attributeValue = "";
+		private String attributeValue = "";
 
 		/**
 		 * @param name
@@ -226,7 +226,7 @@ public class XMLConfig {
 		 * @param value
 		 *            Attribute value
 		 */
-		public XMLAttribute(String name, Object value) {
+		public XMLAttribute(String name, String value) {
 			this.setAttributeName(name);
 			this.setAttributeValue(value);
 		}
@@ -259,7 +259,7 @@ public class XMLConfig {
 		/**
 		 * @return the attributeValue
 		 */
-		public Object getAttributeValue() {
+		public String getAttributeValue() {
 			return attributeValue;
 		}
 
@@ -267,7 +267,7 @@ public class XMLConfig {
 		 * @param attributeValue
 		 *            the attributeValue to set
 		 */
-		public void setAttributeValue(Object attributeValue) {
+		public void setAttributeValue(String attributeValue) {
 			this.attributeValue = attributeValue;
 		}
 
@@ -352,6 +352,17 @@ public class XMLConfig {
 			this.childs.add(child);
 			child.setParent(this);
 		}
+		
+		/**
+		 * Returns an attribute exists based in its name
+		 */
+		public XMLAttribute getAttribute(String name){
+			for(XMLAttribute a : this.getAttributes()){
+				if(a.getAttributeName().equals(name))
+					return a;
+			}
+			return null;
+		}
 
 		/**
 		 * Returns a child
@@ -392,6 +403,17 @@ public class XMLConfig {
 			return false;
 		}
 
+		/**
+		 * Returns weather an attribute exists based in its name
+		 */
+		public boolean attributeExists(String name){
+			for(XMLAttribute a : this.getAttributes()){
+				if(a.getAttributeName().equals(name))
+					return true;
+			}
+			return false;
+		}
+		
 		/**
 		 * @return The childs array size
 		 */
@@ -548,6 +570,7 @@ public class XMLConfig {
 
 		/**
 		 * @Author PikajuTheBoss
+		 * @github https://github.com/Pikaju
 		 */
 
 		/**
